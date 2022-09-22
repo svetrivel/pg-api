@@ -12,5 +12,3 @@ public class PGDTO
     public string? Name { get; set; }
     public int AddressId { get; set; }
 }
-
-throw second error some error made in this branch
