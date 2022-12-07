@@ -2,7 +2,8 @@ namespace PgAPI.Services;
 
 public interface IUserService
 {
-    public string Login(string userName, string password);
+    public bool Login(User user, string password);
     public long Register(User user, string password);
+    public User GetUser(string email);
     public ICollection<User> GetAllUsers();
 }

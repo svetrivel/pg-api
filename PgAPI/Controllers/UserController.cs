@@ -1,5 +1,7 @@
-using Microsoft.AspNetCore.Identity;
+using System.Net;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PgAPI.Helpers;
 using PgAPI.Services;
 
 
@@ -11,46 +13,65 @@ public class UserController : ControllerBase
 {
     private readonly ILogger<PGController> _logger;
     private readonly IUserService _userService;
+    private readonly IConfiguration _config;
 
-    public UserController(ILogger<PGController> logger, IUserService userService)
+    public UserController(ILogger<PGController> logger, IUserService userService, IConfiguration config)
     {
         _logger = logger;
         _userService = userService;
+        _config = config;
     }
 
     [HttpGet("users")]
+    // [Authorize]
     public ICollection<User> GetAllUsers()
     {
         return _userService.GetAllUsers();
     }
 
+    [AllowAnonymous]
+    [HttpGet("Ping")]
+    public object Test()
+    {
+        var appSettings = new { PasswordRegex = _config["AppSettings.PasswordRegex"], JwtSecret = _config["JwtSecretKey"] };
+        return new OkObjectResult(appSettings);
+    }
+
+    [AllowAnonymous]
     [HttpPost("Login")]
     public ActionResult Login(UserLoginDTO loginData)
     {
-        var loginResult = _userService.Login(loginData.UserName, loginData.Password);
+        var user = _userService.GetUser(loginData.Email);
 
-        if (loginResult.Contains("Invalid"))
-            return BadRequest(new { error = $"{loginResult} - {loginData.UserName}." });
+        if (user == default)
+            return APIResponse.Create(LoginMessage.UserNotFound, HttpStatusCode.NotFound);
 
-        return new OkObjectResult(loginResult);
+        var loggedIn = _userService.Login(user, loginData.Password);
+
+        if (!loggedIn)
+            return APIResponse.CreateFromError(LoginMessage.InvalidCredentials, HttpStatusCode.Unauthorized);
+
+        return APIResponse.Create(LoginMessage.LoginSuccessful);
     }
 
-    [HttpPost("Register")]
+    [AllowAnonymous]
+    [HttpPost("register")]
     public ActionResult Register(RegisterUserDTO registerData)
     {
         var newUser = new User
         {
             Status = UserStatus.Pending,
-            FirstName = registerData.UserName,
-            UserName = registerData.UserName,
+            FirstName = registerData.FirstName,
+            LastName = registerData.LastName,
+            UserName = registerData.Email,
             Email = registerData.Email
         };
 
-        var userId = _userService.Register(newUser, registerData.Password);
+        var userId = _userService.Register(newUser, registerData.Email);
 
         if (userId < 1)
-            return BadRequest(new { error = $"User Registration failed - {registerData.UserName}." });
+            return APIResponse.CreateFromError(LoginMessage.UserRegistrationFailed, HttpStatusCode.BadRequest);
 
-        return new OkObjectResult(new { UserId = userId, Message = "User created Successfully!" });
+        return APIResponse.Create((new { UserId = userId }).Concat(LoginMessage.UserRegistrationSuccessful), HttpStatusCode.Created);
     }
 }
