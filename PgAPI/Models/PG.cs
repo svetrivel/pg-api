@@ -9,6 +9,6 @@ public class PG
 
 public class PGDTO
 {
-    public string? Name { get; set; }
+    public string Name { get; set; }
     public int AddressId { get; set; }
 }

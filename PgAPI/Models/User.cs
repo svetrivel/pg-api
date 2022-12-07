@@ -6,9 +6,9 @@ public class User
     public byte[] PasswordHash { get; set; }
     public byte[] PasswordSalt { get; set; }
     public string FirstName { get; set; }
-    public string? LastName { get; set; }
-    public Company? Company { get; set; }
-    public Address? Address { get; set; }
+    public string LastName { get; set; }
+    public Company Company { get; set; }
+    public Address Address { get; set; }
     public UserStatus Status { get; set; }
 
     public List<UserRole> UserRoles { get; set; }

@@ -9,19 +9,14 @@ public class UserService : IUserService
         _repository = repository;
     }
 
-    public string Login(string userName, string password)
-    {
-        var user = GetUser(userName);
-
-        if (user == default)
-            return "Invalid User";
-
-        return VerifyPasswordHash(password, user.PasswordHash, user.PasswordSalt) ? "Login Success"! : "Login failed!";
+    public bool Login(User user, string password)
+    {       
+        return VerifyPasswordHash(password, user.PasswordHash, user.PasswordSalt);
     }
 
     public long Register(User user, string password)
     {
-        if (GetUser(user.UserName) != default)
+        if (GetUser(user.Email) != default)
             return -1;
 
         CreatePasswordHash(password, out byte[] passwordHash, out var passwordSalt);
@@ -34,7 +29,16 @@ public class UserService : IUserService
         return user.Id;
     }
 
-    private User GetUser(string userName) => _repository.Users.FirstOrDefault(x => x.UserName.ToLower() == userName.ToLower());
+    public User GetUser(string email)
+    {
+        if (string.IsNullOrEmpty(email))
+        {
+            throw new ArgumentNullException(nameof(email));
+        }
+
+        return _repository.Users.FirstOrDefault(x => x.Email.ToLower() == email.ToLower());
+    }
+
     private static void CreatePasswordHash(string password, out byte[] passwordHash, out byte[] passwordSalt)
     {
         using var hmac = new System.Security.Cryptography.HMACSHA512();
